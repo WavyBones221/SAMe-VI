@@ -4,8 +4,6 @@ namespace SAMe_VI.Controller
 {
     internal class OperationController
     {
-
-
         internal static void CollectFilesFromFolder(string directory, DocumentRouter router)
         {
             if (!Directory.Exists(directory))
@@ -30,7 +28,5 @@ namespace SAMe_VI.Controller
                 }
             }
         }
-
-
     }
 }

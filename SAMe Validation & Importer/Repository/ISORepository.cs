@@ -9,5 +9,7 @@ namespace SAMe_VI.Repository
         public abstract DataTable ValidateOrderHeaders(SalesOrder orderHeaders, SqlConnection? con = null);
 
         public abstract DataTable ValidateOrderLines(ICollection<SalesOrderLine> orderLines, SqlConnection? con = null);
+
+        public abstract DataTable ValidateDeliveryLocations(ICollection<DeliveryLocationLine> deliveryLocationLines, SqlConnection? con = null);
     }
 }

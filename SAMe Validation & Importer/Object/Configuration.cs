@@ -10,6 +10,8 @@ namespace SAMe_VI.Object
         public static string DatabaseName = string.Empty;
         public static string InputDir = string.Empty;
         public static string LogDir = string.Empty;
+        public static string AttachmentTempDir = string.Empty;
+        public static string DISConnectionString = string.Empty;
 
         public static Resource? Resource = null;
 
@@ -23,6 +25,8 @@ namespace SAMe_VI.Object
             DatabaseName = database.GetValue<string>("DatabaseName") ?? throw new Exception($"Database: DatabaseName not found in {ConfigurationFile}");
             InputDir = file.GetValue<string>("InputDir") ?? throw new Exception($"File:InputDir not found in {ConfigurationFile}");
             LogDir = file.GetValue<string>("LogDir") ?? throw new Exception($"File:LogDir not found in {ConfigurationFile}");
+            AttachmentTempDir = file.GetValue<string>("AttachmentTempDir") ?? throw new Exception($"File:AttachmentTempDir not found in {ConfigurationFile}");
+
             Resource = root.GetSection("Resource").Get<Resource>() ?? throw new Exception("Resource Configuration Not Found");
         }
     }

@@ -4,11 +4,12 @@ using System.Text.Json.Serialization;
 
 namespace SAMe_VI.Object.Models
 {
+    [JsonConverter(typeof(ConfidenceValueConverterFactory))]
     internal sealed class ConfidenceValue<T>
     {
         public T? Value { get; init; }
         public double? Confidence { get; init; }
-        public bool? userValidated { get; init; } 
+        public bool? userValidated { get; init; }
         public override string ToString() => $"{Value} (confidence: {Confidence?.ToString("0.###") ?? "n/a"})";
     }
 
@@ -49,7 +50,6 @@ namespace SAMe_VI.Object.Models
                     bool b = uvProp.GetBoolean();
                     userValidated = b;
                 }
-
 
                 T? value = default;
 
@@ -192,7 +192,7 @@ namespace SAMe_VI.Object.Models
                 {
                     writer.WriteNumber("confidence", value.Confidence.Value);
                 }
-                if (value.userValidated.HasValue) 
+                if (value.userValidated.HasValue)
                 {
                     writer.WriteBoolean("userValidated", value.userValidated.Value);
                 }

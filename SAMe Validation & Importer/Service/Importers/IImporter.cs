@@ -1,6 +1,6 @@
 ﻿using SAMe_VI.Object.Models;
 
-namespace SAMe_VI.Service
+namespace SAMe_VI.Service.Importers
 {
     internal interface IImporter<T> where T : class
     {

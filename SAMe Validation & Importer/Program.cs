@@ -10,8 +10,8 @@ internal static class Program
 {
     private static async Task Main(string[] args)
     {
-        try
-        {
+        //try
+        //{
             IHandlerModule[] modules = DiscoverModules();
 
             using (IHost host = Host.CreateDefaultBuilder(args)
@@ -44,7 +44,7 @@ internal static class Program
                 {
                     Directory.CreateDirectory(inputDir);
                 }
-
+                ///@TODO: Change this to pull from blob please
                 DocumentRouter router = host.Services.GetRequiredService<DocumentRouter>();
 
                 OperationController.CollectFilesFromFolder(inputDir, router);
@@ -55,13 +55,13 @@ internal static class Program
 
                 Environment.Exit(0);
             }
-        }
-        catch(Exception ex) 
-        {
-            //Ran on the ssms job agent, this will be captured by the job log. IF anything happens @TODO: log this better
-            Console.WriteLine(ex.ToString());
-            Environment.Exit(1);
-        }
+        //}
+        //catch(Exception ex) 
+        //{
+        //    //Ran on the ssms job agent, this will be captured by the job log. IF anything happens @TODO: log this better
+        //    Console.WriteLine(ex.ToString());
+        //    Environment.Exit(1);
+        //}
     }
 
     /// <summary>
@@ -99,7 +99,7 @@ internal static class Program
                 }
             }
         }
-        
+
         return [.. found];
     }
 }

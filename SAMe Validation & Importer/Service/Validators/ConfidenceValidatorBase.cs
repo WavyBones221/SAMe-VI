@@ -141,6 +141,7 @@ namespace SAMe_VI.Service.Validators
                     }
                     else
                     {
+                        Console.WriteLine($"    --[Confidence][{path}][{conf.Value}]{Environment.NewLine}");
                         if (conf.Value < children.HardMin)
                         {
                             r.AddForPath(path,$"{path} confidence too low: {conf.Value:0.###} (min {children.HardMin:0.###} ).");

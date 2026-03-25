@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using SAMe_VI.Object.Models;
 using SAMe_VI.Repository;
+using SAMe_VI.Service.Importers;
 using SAMe_VI.Service.Validators;
 
 namespace SAMe_VI.Service.Routing.OperationHandlers
@@ -13,6 +14,7 @@ namespace SAMe_VI.Service.Routing.OperationHandlers
         {
             services.AddSingleton<ISORepository, SORepository>();
             services.AddSingleton<IValidator<SalesOrder>, SOValidator>();
+            services.AddSingleton<IImporter<SalesOrder>, SOImporter>();
             services.AddSingleton<SOHandler>();
             services.AddSingleton<IFileHandler>(sp => sp.GetRequiredService<SOHandler>());
         }

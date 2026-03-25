@@ -11,7 +11,7 @@ namespace SAMe_VI.Object
     internal sealed class FieldIssues
     {
         public List<string> Errors { get; } = [];
-        public List<string> Warnings { get; } =[];
+        public List<string> Warnings { get; } = [];
 
         public bool HasErrors => Errors.Count > 0;
         public bool HasWarnings => Warnings.Count > 0;
@@ -192,7 +192,7 @@ namespace SAMe_VI.Object
                     }
                 }
             }
-            
+
         }
     }
 }

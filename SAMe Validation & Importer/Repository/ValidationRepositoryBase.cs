@@ -9,7 +9,6 @@ internal class ValidationRepositoryBase
 {
     private static SqlConnection? Con;
 
-
     /// <summary>
     /// Will loop through each param of an object 
     /// disregading complex types and collections, and call the stored procedure with those params to validate the object
@@ -22,7 +21,7 @@ internal class ValidationRepositoryBase
     /// <param name="storedProcedure"></param>
     /// <param name="con"></param>
     /// <returns></returns>
-    public static DataTable Validate<T>(object obj, string storedProcedure, SqlConnection? con = null)
+    public static DataTable Validate<T>(object obj, string storedProcedure, SqlConnection? con = null) where T: new()
     {
         if (con is not null)
         {
@@ -37,7 +36,6 @@ internal class ValidationRepositoryBase
         foreach (PropertyInfo prop in properties)
         {
             Type type = prop.PropertyType;
-
 
             bool isFieldValue = type.IsGenericType && type.GetGenericTypeDefinition() == typeof(FieldValue<>);
 
@@ -112,5 +110,3 @@ internal class ValidationRepositoryBase
     }
     private static SqlConnection GetSqlConnection(string? connectionString = null) => new(connectionString ?? Configuration.ConnectionString);
 }
-
-

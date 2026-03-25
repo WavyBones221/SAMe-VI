@@ -56,6 +56,44 @@ namespace SAMe_VI.Service.Validators
                     }
                 }
             }
+
+
+            //note this can handle more than one delivery location, since the analyser can in theory extract more than one delivery location
+            //This needs to be accounted for later on in the code, either just takeing the first location as the main
+            //or comparing both against what is in intact and choosing the one that matches what we have on file
+            DataTable dtD = _repo.ValidateDeliveryLocations(doc.DeliveryLocation);
+            List<string> SODValidatedFields = GetValidatedFieldTypesDeep(doc.DeliveryLocation);
+            List<SOLineValidationStruct> SOD = MapToList<SOLineValidationStruct>(dtD);
+
+            foreach (SOLineValidationStruct deliveryLineMessage in SOD) 
+            {
+                if (!deliveryLineMessage.IsValid) 
+                {
+                    if (SODValidatedFields.Any(x => string.Equals(x, deliveryLineMessage.Type, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        r.AddWarningForPath($"{deliveryLineMessage.Type}_{deliveryLineMessage.LineNumber}", deliveryLineMessage.Messages ?? "Big problem");
+                    }
+                    else 
+                    {
+                        r.AddForPath($"{deliveryLineMessage.Type}_{deliveryLineMessage.LineNumber}", deliveryLineMessage.Messages ?? "Big problem");
+                    }
+                }
+                if (doc.DeliveryLocation.Count > 1)
+                {
+                    //unhandled for now, as this will likely not happen but it is possible
+                    r.AddForPath($"{deliveryLineMessage.Type}_{deliveryLineMessage.LineNumber}", "The analyser has extracted more than one delivery location" ?? "Big problem");
+                }
+            }
+
+            //if any of the orderlines (doc.items) has a non null or string.empty value for requiredEmbroidery addForPath
+            if (doc.Items != null && doc.Items.Any(l => !string.IsNullOrWhiteSpace(l.RequiredEmbroidery)))
+            {
+                foreach (SalesOrderLine line in doc.Items.Where(l => !string.IsNullOrWhiteSpace(l.RequiredEmbroidery)))
+                {
+                    string lineNo = line.LineNumber != null && line.LineNumber.Value != null ? line.LineNumber.Value : string.Empty;
+                    r.AddForPath($"RequiredEmbroidery_{lineNo}", "embroidery present, needs manual review");
+                }
+            }
             return r;
         }
 

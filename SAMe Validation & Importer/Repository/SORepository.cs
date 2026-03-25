@@ -9,6 +9,15 @@ namespace SAMe_VI.Repository
 {
     internal class SORepository : ValidationRepositoryBase, ISORepository
     {
+        public DataTable ValidateDeliveryLocations(ICollection<DeliveryLocationLine> deliveryLocationLines, SqlConnection? con = null)
+        {
+            DataTable resultTable = SQL.CreateTable<SOLineValidationStruct>();
+            foreach (DeliveryLocationLine deliveryLocationLine in deliveryLocationLines)
+            {
+                resultTable.Merge(Validate<SOLineValidationStruct>(deliveryLocationLine, $"{Configuration.DatabaseName}.dbo.SAMe_Validation_Delivery_Location_Line", con));
+            }
+            return resultTable;
+        }
 
         public DataTable ValidateOrderHeaders(SalesOrder orderHeaders, SqlConnection? con = null)
         {

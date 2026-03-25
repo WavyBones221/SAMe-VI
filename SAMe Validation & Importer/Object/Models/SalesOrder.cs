@@ -22,8 +22,8 @@
         ConfidenceValue<string> OrderNumber,
         [property: RequiredField(HardMin = 0.75, SoftMin = 0.90)]
         ConfidenceValue<DateTime> OrderDate,
-        [property: RequiredField(HardMin = 0.75, SoftMin = 0.90)]
-        ConfidenceValue<string> DeliveryLocation,
+        [property: ValidateChildren(MinCount = 1, ItemName = "DeliveryLocation")]
+        ConfidenceValue<List<DeliveryLocationLineRaw>> DeliveryLocation,
         [property: RequiredField(HardMin = 0.75, SoftMin = 0.90)]
         ConfidenceValue<string> InvoiceTo,
         [property: RequiredField(HardMin = 0.75, SoftMin = 0.90)]
@@ -61,16 +61,24 @@
         ConfidenceValue<string?> RequiredEmbroidery
     );
 
+    internal sealed record DeliveryLocationLineRaw(
+        [property : RequiredField(HardMin = 0.75, SoftMin = 0.90)]
+        ConfidenceValue<string> AddressLine1,
+        [property : RequiredField(HardMin = 0.75, SoftMin = 0.90)]
+        ConfidenceValue<string> AddressLine2,
+        [property : RequiredField(HardMin = 0.75, SoftMin = 0.90)]
+        ConfidenceValue<string> AddressLine3,
+        [property : RequiredField(HardMin = 0.75, SoftMin = 0.90)]
+        ConfidenceValue<string> AddressLine4,
+        [property : RequiredField(HardMin = 0.75, SoftMin = 0.90)]
+        ConfidenceValue<string> PostCode
+    );
+
     public sealed record SalesOrder(
 
             FieldValue<string> OrderNumber,
             DateTime OrderDate,
-            FieldValue<string> DeliveryLocation,
-            FieldValue<string>? CompanyName,
-            FieldValue<string> AddressLine1,
-            FieldValue<string>? AddressLine2,
-            FieldValue<string> AddressLine3,
-            FieldValue<string> PostCode,
+            List<DeliveryLocationLine> DeliveryLocation,
             string InvoiceTo,
             string InvoiceContactEmail,
             List<SalesOrderLine> Items,
@@ -78,7 +86,7 @@
             string Customer,
             string FileBlobID,
             FieldValue<string> CustomerCode
-        );
+    );
 
     public sealed record SalesOrderLine(
         FieldValue<string> LineNumber,
@@ -89,8 +97,16 @@
         FieldValue<decimal> UnitPrice,
         string DeliveryContact,
         string DeliveryInstructions,
-        FieldValue<string>? RequiredEmbroidery,
+        string RequiredEmbroidery,
         FieldValue<string> CustomerCode
+    );
+
+    public sealed record DeliveryLocationLine(
+        FieldValue<string> AddressLine1,
+        FieldValue<string> AddressLine2,
+        FieldValue<string> AddressLine3,
+        FieldValue<string> AddressLine4,
+        FieldValue<string> PostCode
     );
 
     public sealed record FieldValue<T>(
@@ -98,6 +114,5 @@
         string Type, //Binds to error messages returned by the validation repo
         bool? userValidated, //boolean for users to override errors -  this can be set outside of this solution as it is read from the object, can be ommitted from the input and will default to false, or null, same affect
         bool? userValidatable = false //provides control to this solution to if a field can be validated by the user or if it should be locked behind an error regardless of user validation
-        );
+    );
 }
-

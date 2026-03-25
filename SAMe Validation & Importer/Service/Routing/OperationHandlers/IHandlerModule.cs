@@ -2,6 +2,7 @@
 {
     /// <summary>
     /// Please do not use this for anything other than Operation Handlers
+    /// I dont know why you would but just a warning
     /// </summary>
     internal interface IHandlerModule
     {
