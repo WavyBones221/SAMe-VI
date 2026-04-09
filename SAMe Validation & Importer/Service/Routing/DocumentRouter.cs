@@ -35,12 +35,12 @@ namespace SAMe_VI.Service.Routing
 
                     if (normalised.Length == 0)
                     {
-                        throw new InvalidOperationException("Handler exposed an empty or whitespace FileExtension.");
+                        throw new InvalidOperationException($"Handler {handler.GetType().Name} exposed an empty or whitespace FileExtension.");
                     }
 
                     if (map.ContainsKey(normalised))
                     {
-                        throw new InvalidOperationException($"A handler is already registered for extension {normalised}.");
+                        throw new InvalidOperationException($"A handler is already registered for extension {normalised}. {Environment.NewLine}Occured when tryiing to add for {handler.GetType().Name}.");
                     }
 
                     map[normalised] = handler;
@@ -49,7 +49,7 @@ namespace SAMe_VI.Service.Routing
 
             if (map.Count == 0)
             {
-                throw new InvalidOperationException("No handlers were registered. Provide at least one handler with a valid FileExtension.");
+                throw new InvalidOperationException($"No handlers were registered. Provide at least one handler with a valid FileExtension.");
             }
 
             return new DocumentRouter(map);
@@ -87,7 +87,15 @@ namespace SAMe_VI.Service.Routing
             HashSet<IFileHandler> uniqueHandlers = [.. _byExtension.Values];
             foreach (IFileHandler handler in uniqueHandlers)
             {
-                await handler.ProcessAllAsync(ct);
+                try
+                {
+                    await handler.ProcessAllAsync(ct);
+                }
+                catch (Exception ex) 
+                {
+                    Console.WriteLine($"[ERROR] : Error occured \"{handler.GetType().Name}\" whilst processing {Environment.NewLine}[Message] : {ex.Message}");
+                    continue;
+                }
             }
         }
 

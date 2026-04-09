@@ -1,11 +1,8 @@
-﻿using Microsoft.Data.SqlClient;
-using SAMe_VI.Object;
+﻿using SAMe_VI.Object;
 using SAMe_VI.Object.Models;
 using SAMe_VI.Repository;
 using SAMe_VI.Repository.DataTableStruct;
-using System.ComponentModel;
 using System.Data;
-using System.Dynamic;
 using System.Globalization;
 using System.Reflection;
 
@@ -21,7 +18,7 @@ namespace SAMe_VI.Service.Validators
             List<string> SOHValidatedFields = GetValidatedFieldTypes(doc);
             List<SOHeaderValidationStruct> SOH = MapToList<SOHeaderValidationStruct>(dtH);
 
-            foreach (SOHeaderValidationStruct headerMessage in SOH) 
+            foreach (SOHeaderValidationStruct headerMessage in SOH)
             {
                 if (!headerMessage.IsValid)
                 {
@@ -30,7 +27,7 @@ namespace SAMe_VI.Service.Validators
                         //In User We Trust
                         r.AddWarningForPath(headerMessage.Type, headerMessage.Messages ?? "Big problem");
                     }
-                    else 
+                    else
                     {
                         r.AddForPath(headerMessage.Type, headerMessage.Messages ?? "Big problem");
                     }
@@ -41,7 +38,7 @@ namespace SAMe_VI.Service.Validators
             List<string> SOLValidatedFields = GetValidatedFieldTypesDeep(doc.Items);
             List<SOLineValidationStruct> SOL = MapToList<SOLineValidationStruct>(dtL);
 
-            foreach (SOLineValidationStruct lineMessage in SOL) 
+            foreach (SOLineValidationStruct lineMessage in SOL)
             {
                 if (!lineMessage.IsValid)
                 {
@@ -50,7 +47,7 @@ namespace SAMe_VI.Service.Validators
                         //In User We Trust
                         r.AddWarningForPath($"{lineMessage.Type}_{lineMessage.LineNumber}", lineMessage.Messages ?? "Big problem");
                     }
-                    else 
+                    else
                     {
                         r.AddForPath($"{lineMessage.Type}_{lineMessage.LineNumber}", lineMessage.Messages ?? "Big problem");
                     }
@@ -65,15 +62,15 @@ namespace SAMe_VI.Service.Validators
             List<string> SODValidatedFields = GetValidatedFieldTypesDeep(doc.DeliveryLocation);
             List<SOLineValidationStruct> SOD = MapToList<SOLineValidationStruct>(dtD);
 
-            foreach (SOLineValidationStruct deliveryLineMessage in SOD) 
+            foreach (SOLineValidationStruct deliveryLineMessage in SOD)
             {
-                if (!deliveryLineMessage.IsValid) 
+                if (!deliveryLineMessage.IsValid)
                 {
                     if (SODValidatedFields.Any(x => string.Equals(x, deliveryLineMessage.Type, StringComparison.OrdinalIgnoreCase)))
                     {
                         r.AddWarningForPath($"{deliveryLineMessage.Type}_{deliveryLineMessage.LineNumber}", deliveryLineMessage.Messages ?? "Big problem");
                     }
-                    else 
+                    else
                     {
                         r.AddForPath($"{deliveryLineMessage.Type}_{deliveryLineMessage.LineNumber}", deliveryLineMessage.Messages ?? "Big problem");
                     }
@@ -81,7 +78,7 @@ namespace SAMe_VI.Service.Validators
                 if (doc.DeliveryLocation.Count > 1)
                 {
                     //unhandled for now, as this will likely not happen but it is possible
-                    r.AddForPath($"{deliveryLineMessage.Type}_{deliveryLineMessage.LineNumber}", "The analyser has extracted more than one delivery location" ?? "Big problem");
+                    r.AddForPath($"{deliveryLineMessage.Type}_{deliveryLineMessage.LineNumber}", "The analyser has extracted more than one delivery location");
                 }
             }
 
@@ -90,8 +87,11 @@ namespace SAMe_VI.Service.Validators
             {
                 foreach (SalesOrderLine line in doc.Items.Where(l => !string.IsNullOrWhiteSpace(l.RequiredEmbroidery)))
                 {
-                    string lineNo = line.LineNumber != null && line.LineNumber.Value != null ? line.LineNumber.Value : string.Empty;
-                    r.AddForPath($"RequiredEmbroidery_{lineNo}", "embroidery present, needs manual review");
+                    if (!line.userValidated.Value)
+                    {
+                        string lineNo = line.LineNumber != null && line.LineNumber.Value != null ? line.LineNumber.Value : string.Empty;
+                        r.AddForPath($"RequiredEmbroidery_{lineNo}", "embroidery present, needs manual review");
+                    }
                 }
             }
             return r;
@@ -117,6 +117,7 @@ namespace SAMe_VI.Service.Validators
                         }
                         else
                         {
+                            //@TODO: may need expanding in the future, or finding an abstract way to do this.
                             if (prop.PropertyType == typeof(int))
                             {
                                 value = Convert.ToInt32(value, CultureInfo.InvariantCulture);
@@ -141,8 +142,6 @@ namespace SAMe_VI.Service.Validators
             return list;
         }
 
-
-
         private static List<string> GetValidatedFieldTypesDeep(object obj)
         {
             List<string> results = [];
@@ -162,7 +161,6 @@ namespace SAMe_VI.Service.Validators
                 return results;
             }
 
-            //Otherwise treat it as a single object
             results.AddRange(GetValidatedFieldTypes(obj));
             return results;
         }
@@ -193,9 +191,7 @@ namespace SAMe_VI.Service.Validators
                     continue;
                 }
 
-                //isValidatable shouldnt be null here ever since its automatically set to false, but for the sake of keeping this abstract, it does do this through reflection.
-                //if you find a way or want to waste time on making this more efficient by not using reflection, be my guest
-                //but it would require changing the structure of both GetValidatedFieldTypes(object obj) and GetValidatedFieldTypesDeep(object obj).
+                //isValidatable shouldnt be null here ever since its automatically set to false
 
                 PropertyInfo? validatedProp = wrapper.GetType().GetProperty("userValidated");
                 PropertyInfo? isValidatable = wrapper.GetType().GetProperty("userValidatable");

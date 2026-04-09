@@ -13,6 +13,12 @@ namespace SAMe_VI.Object
         public static string AttachmentTempDir = string.Empty;
         public static string DISConnectionString = string.Empty;
 
+        //KeyValuePair<string, string> = <EmailAddress, Password>
+        public static KeyValuePair<string, string>? EmailCredentials = null;
+        public static string? EmailAddress = null;
+        public static string[]? EmailRecipients = null;
+        public static string? RunReportDir = null;
+
         public static Resource? Resource = null;
 
         public static void SetConfiguration()

@@ -58,7 +58,9 @@
         [property: RequiredField(HardMin = 0.75, SoftMin = 0.90)]
         ConfidenceValue<string> DeliveryInstructions,
         [property: RequiredField(HardMin = 1.75, SoftMin = 1.90)]
-        ConfidenceValue<string?> RequiredEmbroidery
+        ConfidenceValue<string?> RequiredEmbroidery,
+        [property: RequiredField(HardMin = 0.00, SoftMin = 0.00, MissingConfidenceIsSoft = true)]
+        ConfidenceValue<bool> UserValidated
     );
 
     internal sealed record DeliveryLocationLineRaw(
@@ -75,7 +77,6 @@
     );
 
     public sealed record SalesOrder(
-
             FieldValue<string> OrderNumber,
             DateTime OrderDate,
             List<DeliveryLocationLine> DeliveryLocation,
@@ -98,7 +99,8 @@
         string DeliveryContact,
         string DeliveryInstructions,
         string RequiredEmbroidery,
-        FieldValue<string> CustomerCode
+        FieldValue<string> CustomerCode,
+        FieldValue<bool> userValidated
     );
 
     public sealed record DeliveryLocationLine(

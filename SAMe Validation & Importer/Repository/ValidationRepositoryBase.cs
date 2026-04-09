@@ -16,6 +16,7 @@ internal class ValidationRepositoryBase
     /// Does require the stored procedure to be set up to receive the params and return a result set that matches the structure of the object type T which can be found within the SAMe_VI.Repository.DataTableStruct folder
     /// Feel free to create new structures in that folder if needed, just make sure the variables names match the columns of the results of the stored procedure
     /// </summary>
+    /// T is a datastructure for the DataTable return, can be found within the DataTableStruct Folder
     /// <typeparam name="T"></typeparam>
     /// <param name="obj"></param>
     /// <param name="storedProcedure"></param>
@@ -62,6 +63,12 @@ internal class ValidationRepositoryBase
                 continue;
             }
 
+            //@TODO make an attribute to add to the field Values to ignore this instead, more sustainable than a bunch of these
+            if (string.Equals(prop.Name, "UserValidated", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             object? wrapper = prop.GetValue(obj);
             if (wrapper == null)
             {
@@ -83,7 +90,6 @@ internal class ValidationRepositoryBase
 
         using (SqlCommand cmnd = new(storedProcedure, Con))
         {
-
             cmnd.CommandType = CommandType.StoredProcedure;
             if (parameters != null && parameters.Count != 0)
             {
@@ -101,7 +107,6 @@ internal class ValidationRepositoryBase
             {
                 da.Fill(table);
             }
-
         }
         Con.Close();
 

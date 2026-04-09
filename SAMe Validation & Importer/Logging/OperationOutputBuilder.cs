@@ -22,12 +22,9 @@ namespace SAMe_VI.Logging
         public string DocumentType { get; init; } = string.Empty;
         public DateTimeOffset ReceivedAtUtc { get; init; }
         public DateTimeOffset FinishedAtUtc { get; init; }
-
         public string? OrderNumber { get; init; }
-
         public object Input { get; init; } = new object();
         public object Extracted { get; init; } = new object();
-
         public List<string> Errors { get; init; } = [];
         public List<string> Warnings { get; init; } = [];
     }

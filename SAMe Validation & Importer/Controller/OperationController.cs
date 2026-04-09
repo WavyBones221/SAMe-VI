@@ -1,24 +1,36 @@
-﻿using SAMe_VI.Service.Routing;
+﻿using SAMe_Azure_Foundary_Library.LLM.Controller;
+using SAMe_VI.Object;
+using SAMe_VI.Service.Routing;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace SAMe_VI.Controller
 {
-    internal class OperationController
+    internal static class OperationController
     {
-        internal static void CollectFilesFromFolder(string directory, DocumentRouter router)
+        internal static async Task CollectFilesFromFolder(string directory, DocumentRouter router, CancellationToken ct = default)
         {
+            AnalysisController analysisController = CreateAnalysisController();
+
+            await CollectFilesFromBlobAsync(analysisController, directory, ct).ConfigureAwait(false);
+
             if (!Directory.Exists(directory))
             {
                 return;
             }
 
-            string[] files = Directory.GetFiles(directory, "*.*", SearchOption.TopDirectoryOnly);
-
-            for (int i = 0; i < files.Length; i++)
+            foreach (string file in Directory.EnumerateFiles(directory, "*.*", SearchOption.TopDirectoryOnly))
             {
-                string file = files[i];
-                string ext = Path.GetExtension(file);
+                ct.ThrowIfCancellationRequested();
 
-                if (router.TryGetHandlerByExtension(ext, out IFileHandler handler))
+                await TryDeleteFromBlobStorageAsync(analysisController, file).ConfigureAwait(false);
+
+                string extension = Path.GetExtension(file);
+
+                if (router.TryGetHandlerByExtension(extension, out IFileHandler handler))
                 {
                     handler.Enqueue(file);
                 }
@@ -27,6 +39,32 @@ namespace SAMe_VI.Controller
                     Console.WriteLine("Unrecognised file type -> " + file);
                 }
             }
+        }
+
+        private static async Task CollectFilesFromBlobAsync(AnalysisController analysisController, string directory, CancellationToken ct)
+        {
+            KeyValuePair<string, string> tag = new("status", "validating");
+            await analysisController.GetFilesByTag(tag, directory, ct: ct).ConfigureAwait(false);
+        }
+
+        private static async Task TryDeleteFromBlobStorageAsync(AnalysisController analysisController, string file)
+        {
+            try
+            {
+                string containerName = Configuration.Resource!.Storage!.StorageContainerName!;
+                await analysisController.DeleteFileInBlobStorage(file, containerName).ConfigureAwait(false);
+            }
+            catch (Exception) {/*Thog dont care*/}
+        }
+
+        private static AnalysisController CreateAnalysisController()
+        {
+            return new AnalysisController(
+                resourceID: Configuration.Resource!.ResourceID!,
+                analyser: Configuration.Resource.Analyser!,
+                key: Configuration.Resource.Key!,
+                storageConnectionString: Configuration.Resource.Storage!.StorageConnectionString!,
+                storageContainerName: Configuration.Resource.Storage.StorageContainerName!);
         }
     }
 }

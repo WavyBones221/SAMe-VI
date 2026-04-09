@@ -5,7 +5,7 @@ namespace SAMe_VI.Service.Mapping
 {
     internal static partial class SalesOrderMapper
     {
-        private static readonly string PostCodePattern = @"([A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})$";
+        private const string PostCodePattern = @"([A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2})$";
 
         public static SalesOrder ToDomain(SalesOrderRaw raw)
         {
@@ -72,7 +72,14 @@ namespace SAMe_VI.Service.Mapping
                             Type: string.Empty,
                             userValidated: true,
                             userValidatable: true
+                        ),
+                        userValidated: BoolField(
+                            line.UserValidated.Value,
+                            "UserValidated",
+                            line.UserValidated.userValidated,
+                            userValidatable: true
                         )
+
                     );
 
                     items.Add(item);
@@ -172,7 +179,7 @@ namespace SAMe_VI.Service.Mapping
 
             return mapped;
         }
-
+        //make a MapperBase.cs and put these in that base method so other processes can use them
         private static FieldValue<string> StringField(string? value, string type, bool? validated, bool? userValidatable = false, bool clean = true)
         {
             string? ret;
@@ -192,6 +199,14 @@ namespace SAMe_VI.Service.Mapping
         private static FieldValue<decimal> DecimalField(decimal value, string type, bool? validated, bool? userValidatable = false)
         {
             FieldValue<decimal> field = new(value, Type: type, userValidated: validated, userValidatable: userValidatable);
+            return field;
+        }
+
+        private static FieldValue<bool> BoolField(bool? value, string type, bool? validated, bool? userValidatable = false)
+        {
+            bool ret = value ?? false;
+
+            FieldValue<bool> field = new(ret, Type: type, userValidated: validated ?? false, userValidatable: userValidatable);
             return field;
         }
 

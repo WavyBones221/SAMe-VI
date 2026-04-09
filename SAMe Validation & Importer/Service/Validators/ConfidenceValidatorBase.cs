@@ -126,7 +126,7 @@ namespace SAMe_VI.Service.Validators
             {
                 if (children != null)
                 {
-                    PropertyInfo confProp = cvObj.GetType().GetProperty(nameof(ConfidenceValue<object>.Confidence))!;
+                    PropertyInfo confProp = cvObj.GetType().GetProperty(nameof(ConfidenceValue<>.Confidence))!;
                     double? conf = (double?)confProp.GetValue(cvObj);
                     if (conf is null)
                     {
@@ -152,7 +152,7 @@ namespace SAMe_VI.Service.Validators
                         }
                     }
 
-                    PropertyInfo listProp = cvObj.GetType().GetProperty(nameof(ConfidenceValue<object>.Value))!;
+                    PropertyInfo listProp = cvObj.GetType().GetProperty(nameof(ConfidenceValue<>.Value))!;
                     object? listObj = listProp.GetValue(cvObj);
 
                     int count = 0;

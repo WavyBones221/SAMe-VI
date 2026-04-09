@@ -146,6 +146,27 @@ namespace SAMe_VI.Object.Models
                                 break;
                             }
 
+                        case Type t when t == typeof(bool) || t == typeof(bool?):
+                            {
+                                if (root.TryGetProperty("valueBool", out JsonElement b))
+                                {
+                                    if (b.ValueKind == JsonValueKind.True || b.ValueKind == JsonValueKind.False)
+                                    {
+                                        bool boolValue = b.GetBoolean();
+                                        value = (T)(object)boolValue;
+                                    }
+                                    else if (b.ValueKind == JsonValueKind.String)
+                                    {
+                                        string stringValue = b.GetString();
+                                        if (bool.TryParse(stringValue, out bool boolValue))
+                                        {
+                                            value = (T)(object)boolValue;
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+
                         default:
                             {
                                 foreach (JsonProperty prop in root.EnumerateObject())
@@ -181,6 +202,10 @@ namespace SAMe_VI.Object.Models
                     {
                         writer.WritePropertyName("valueArray");
                         JsonSerializer.Serialize(writer, value.Value, options);
+                    }
+                    else if (value.Value is bool b)
+                    {
+                        writer.WriteBoolean("valueBool", b);
                     }
                     else
                     {

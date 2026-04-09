@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SAMe_VI.Controller;
+using SAMe_VI.Logging;
 using SAMe_VI.Object;
 using SAMe_VI.Service.Routing;
 using SAMe_VI.Service.Routing.OperationHandlers;
@@ -10,44 +11,73 @@ internal static class Program
 {
     private static async Task Main(string[] args)
     {
-        //try
-        //{
+        Configuration.SetConfiguration();
+        //Can be changed how captured, for now just writing to console which is captured by the job agent, can change to write to file or something else if needed
+        TextWriter capturedOut = new ConsoleOutputBuilder(Console.Out);
+        Console.SetOut(capturedOut);
+
+        try
+        {
             IHandlerModule[] modules = DiscoverModules();
 
             using (IHost host = Host.CreateDefaultBuilder(args)
                 .ConfigureServices(services =>
                 {
-                    for (int i = 0; i < modules.Length; i++)
+                    try
                     {
-                        modules[i].RegisterServices(services);
-                    }
-
-                    services.AddSingleton(sp =>
-                    {
-                        List<IFileHandler> list = [];
                         for (int i = 0; i < modules.Length; i++)
                         {
-                            IEnumerable<IFileHandler> group = modules[i].BuildHandlers(sp);
-                            list.AddRange(group);
+                            try
+                            {
+                                modules[i].RegisterServices(services);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Service Could not be Registered : {modules[i].GetType().FullName} {Environment.NewLine}[Message] : {ex.Message}");
+                                continue;
+                            }
                         }
 
-                        IFileHandler[] handlers = [.. list];
-                        return DocumentRouter.WithHandlers(handlers);
-                    });
+                        services.AddSingleton(sp =>
+                        {
+                            List<IFileHandler> list = [];
+                            for (int i = 0; i < modules.Length; i++)
+                            {
+                                try
+                                {
+                                    IEnumerable<IFileHandler> group = modules[i].BuildHandlers(sp);
+                                    list.AddRange(group);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"{Environment.NewLine}One or more Handlers Could not be built for : {modules[i].GetType().FullName} {Environment.NewLine}[Message] : {ex.Message}");
+                                    continue;
+                                }
+                            }
+
+                            IFileHandler[] handlers = [.. list];
+                            return DocumentRouter.WithHandlers(handlers);
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"{Environment.NewLine}An error occurred during service registration. {Environment.NewLine}[Message] : {ex.Message}");
+                        return;
+                    }
                 })
                 .Build())
             {
-                Configuration.SetConfiguration();
                 string inputDir = Configuration.InputDir;
 
                 if (!Directory.Exists(inputDir))
                 {
                     Directory.CreateDirectory(inputDir);
                 }
-                ///@TODO: Change this to pull from blob please
+                ///@TODO: Change this to pull from blob please - EDIT: this is done but also has functionality to allow files to be dropped in the folder if needed,
+                ///                                                  > this is for ease of use for now, can remove local folder functionality later if not needed
                 DocumentRouter router = host.Services.GetRequiredService<DocumentRouter>();
 
-                OperationController.CollectFilesFromFolder(inputDir, router);
+                await OperationController.CollectFilesFromFolder(inputDir, router);
 
                 await router.ProcessAllAsync();
 
@@ -55,13 +85,12 @@ internal static class Program
 
                 Environment.Exit(0);
             }
-        //}
-        //catch(Exception ex) 
-        //{
-        //    //Ran on the ssms job agent, this will be captured by the job log. IF anything happens @TODO: log this better
-        //    Console.WriteLine(ex.ToString());
-        //    Environment.Exit(1);
-        //}
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Bad News, Something unaccounted for has happened, Causing the application to exit {Environment.NewLine}[Message] : {ex.Message} @ [Source] : {ex.Source}");
+            Environment.Exit(1);
+        }
     }
 
     /// <summary>

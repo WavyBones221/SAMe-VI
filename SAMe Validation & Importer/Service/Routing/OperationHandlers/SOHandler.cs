@@ -1,5 +1,4 @@
-﻿using Azure.Storage.Blobs;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using SAMe_Azure_Foundary_Library.LLM.Controller;
 using SAMe_VI.Object;
 using SAMe_VI.Object.Models;
@@ -33,6 +32,7 @@ namespace SAMe_VI.Service.Routing.OperationHandlers
                 ReadCommentHandling = JsonCommentHandling.Skip,
                 AllowTrailingCommas = true
             };
+
             _jsonOptions.Converters.Add(new ConfidenceValueConverterFactory());
         }
 
@@ -47,7 +47,7 @@ namespace SAMe_VI.Service.Routing.OperationHandlers
             {
                 try
                 {
-                    bool needsDownloading = false;
+                    bool Importable = false;
                     string json = await File.ReadAllTextAsync(file, ct);
                     SalesOrderRaw? raw = JsonSerializer.Deserialize<SalesOrderRaw>(json, _jsonOptions);
 
@@ -80,10 +80,14 @@ namespace SAMe_VI.Service.Routing.OperationHandlers
                             }
                         }
                         status = "manual-review";
+
+                        //del from directory
+                        File.Delete(file);
+
                     }
                     else
                     {
-                        needsDownloading = true;
+                        Importable = true;
                         status = "import-ready";
                     }
 
@@ -109,50 +113,79 @@ namespace SAMe_VI.Service.Routing.OperationHandlers
                                                 storageContainerName: Configuration.Resource.Storage.StorageContainerName
                                                );
 
-                    await ac.UploadToBlobStorage(filePath, $"{blobId}.SO",  _: ct);
+                    await ac.UploadToBlobStorage(filePath, $"{blobId}.SO", _: ct);
                     await ac.AddTagsToFileAsync($"{blobId}.SO", new Dictionary<string, string>
-                        {
-                            { "status", status },
-                            { "file-type", "sales-order" }
-                        }, Configuration.Resource.Storage.StorageContainerName);
-
-                    if (needsDownloading) 
                     {
-                        if (!await ac.DownloadFileFromBlob(domain.FileBlobID, Configuration.AttachmentTempDir!, ct: ct)) 
+                        { "status", status },
+                        { "file-type", "sales-order" }
+                    }, Configuration.Resource.Storage.StorageContainerName);
+
+                    if (Importable)
+                    {
+                        if (!await ac.DownloadFileFromBlob(domain.FileBlobID, Path.Combine(Configuration.AttachmentTempDir!, domain.FileBlobID), ct: ct))
                         {
-                            Console.WriteLine($"{file}: Could not retrieve original document from Blob Storage, "+
-                                              $"{Environment.NewLine}SalesOrder will be imported without an attachment "+
+                            Console.WriteLine($"{file}: Could not retrieve original document from Blob Storage, " +
+                                              $"{Environment.NewLine}SalesOrder will be imported without an attachment " +
                                               $"{Environment.NewLine}Please collect the file:[{domain.FileBlobID}] manually ");
                         }
-                    }
-
-
-                    //This could be seperated from this solution, or be made to independantly called by this solution.
-                    try
-                    {
-                        if (await _importer.ImportAsync(domain, ct))
+                        //This could be seperated from this solution, or be made to independantly called by this solution on ssms job agent or something??
+                        //idk man probably could do with seperating though- anyways this would be the seperation point, everything above in this controller is validation related.
+                        //all below is import
+                        try
                         {
-                            //del from blob 
-                            //del from local
-                            //give pdf to Ellis's thing
+                            if (await _importer.ImportAsync(domain, ct))
+                            {
+
+                                //del from blob, only reason these will error is either file didnt exist or something went wrong with log object creation, either way dont care
+                                try
+                                {
+                                    await ac.DeleteFileInBlobStorage(domain.FileBlobID, Configuration.Resource.Storage.StorageContainerName, ct);
+                                }   catch (Exception) {/*thog dont care*/}
+                                try
+                                {
+                                    await ac.DeleteFileInBlobStorage(Path.ChangeExtension(domain.FileBlobID, "json"), Configuration.Resource.Storage.StorageContainerName, ct);
+                                }   catch (Exception) {/*thog dont care*/}
+                                
+                                //Depending on where the file came from, either was put into the system the normal way by uploading to the blob, or if a file was instead dropped into the temp file dir, just need to do this just in case
+                                try
+                                {
+                                    await ac.DeleteFileInBlobStorage($"{blobId}.SO", Configuration.Resource.Storage.StorageContainerName, ct);
+                                }   catch (Exception) {/*thog dont care*/}
+                                try
+                                {
+                                    await ac.DeleteFileInBlobStorage($"{Path.GetFileNameWithoutExtension(file)}.SO", Configuration.Resource.Storage.StorageContainerName, ct);
+                                }   catch (Exception) {/*thog dont care*/}
+
+                                //del from local, can be changed to move
+                                File.Delete(file);
+                            }
+                            else
+                            {
+                                //del from local
+                                File.Delete(file);
+                                //change tag to manual review? + give import error tag
+                                await ac.AddTagsToFileAsync($"{blobId}.SO", new Dictionary<string, string>
+                                {
+                                    { "status", "error" },
+                                    { "file-type", "sales-order" }
+                                },
+                                Configuration.Resource.Storage.StorageContainerName);
+                                //output db error.............   No.
+                            }
                         }
-                        else
-                        {
-                            //del from local
-                            //change tag to manual review? + give import error tag
-                            //output db error
+                        catch (InvalidOperationException joe)
+                        {                                                   //joe message
+                            Console.WriteLine($"{file}: Invalid Operation -> {joe.Message}");
+                            //missing delivery address or sales order headers
+                            continue;
                         }
-                    }
-                    catch (InvalidOperationException ioe) 
-                    {
-                        Console.WriteLine($"{file}: Invalid Operation -> {ioe.Message}");
-                        //missing delivery address or sales order headers
                     }
                 }
                 catch (JsonException jex)
                 {
                     Console.WriteLine($"{file}: JSON error -> {jex.Message}");
                     //db error
+                    continue;
                 }
             }
         }
