@@ -2,12 +2,6 @@
 
 namespace SAMe_VI.Object
 {
-    internal enum IssueKind
-    {
-        Warning = 0,
-        Error = 1
-    }
-
     internal sealed class FieldIssues
     {
         public List<string> Errors { get; } = [];
@@ -139,10 +133,8 @@ namespace SAMe_VI.Object
             return result;
         }
 
-
         public void AttachToJson(JObject root, out JObject output)
         {
-
             output = root;
 
             Dictionary<string, JObject> props = BuildIssueJProperties();
@@ -152,27 +144,38 @@ namespace SAMe_VI.Object
                 string path = entry.Key;
                 JObject issueObj = entry.Value;
 
-                JToken fieldToken = output[path]!;
+                JToken? fieldToken = output[path];
 
                 if (fieldToken == null)
                 {
-                    string[] parts = path.Split('_', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 2)
+                    int lastUnderscore = path.LastIndexOf('_');
+                    if (lastUnderscore > 0 && lastUnderscore < path.Length - 1)
                     {
-                        string fieldName = parts[0];
+                        string fieldName = path.Substring(0, lastUnderscore);
+                        string lineSuffix = path.Substring(lastUnderscore + 1);
 
-                        if (int.TryParse(parts[1], out int lineNumber))
+                        if (int.TryParse(lineSuffix, out int lineNumber))
                         {
                             int index = lineNumber - 1;
 
-                            JArray lineArray = (JArray)output["OrderLines"]!["valueArray"]!;
-                            if (lineArray != null && index < lineArray.Count)
+                            if (index >= 0)
                             {
-                                JObject wrapper = (JObject)lineArray[index];
+                                JToken? orderLinesToken = output["OrderLines"];
+                                JToken? valueArrayToken = orderLinesToken?["valueArray"];
 
-                                if (wrapper["valueObject"] is JObject valueObj)
+                                if (valueArrayToken is JArray lineArray)
                                 {
-                                    fieldToken = valueObj[fieldName]!;
+                                    if (index < lineArray.Count)
+                                    {
+                                        JToken wrapperToken = lineArray[index];
+                                        JObject? wrapperObject = wrapperToken as JObject;
+
+                                        JObject? valueObj = wrapperObject?["valueObject"] as JObject;
+                                        if (valueObj != null)
+                                        {
+                                            fieldToken = valueObj[fieldName];
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -181,18 +184,19 @@ namespace SAMe_VI.Object
 
                 if (fieldToken is JObject obj)
                 {
-                    if (issueObj["errors"] != null)
+                    JToken? errorsToken = issueObj["errors"];
+                    if (errorsToken != null)
                     {
-                        obj["errors"] = issueObj["errors"];
+                        obj["errors"] = errorsToken;
                     }
 
-                    if (issueObj["warnings"] != null)
+                    JToken? warningsToken = issueObj["warnings"];
+                    if (warningsToken != null)
                     {
-                        obj["warnings"] = issueObj["warnings"];
+                        obj["warnings"] = warningsToken;
                     }
                 }
             }
-
         }
     }
 }

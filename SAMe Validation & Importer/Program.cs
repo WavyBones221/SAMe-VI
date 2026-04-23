@@ -13,7 +13,7 @@ internal static class Program
     {
         Configuration.SetConfiguration();
         //Can be changed how captured, for now just writing to console which is captured by the job agent, can change to write to file or something else if needed
-        ConsoleOutputBuilder capturedOut = new ConsoleOutputBuilder(Console.Out);
+        ConsoleOutputBuilder capturedOut = new (Console.Out);
         Console.SetOut(capturedOut);
 
         try

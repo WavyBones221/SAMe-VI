@@ -54,7 +54,7 @@ namespace SAMe_VI.Controller
                 string containerName = Configuration.Resource!.Storage!.StorageContainerName!;
                 await analysisController.DeleteFileInBlobStorage(file, containerName).ConfigureAwait(false);
             }
-            catch (Exception) {/*Thog dont care*/}
+            catch (Exception) { }
         }
 
         private static AnalysisController CreateAnalysisController()

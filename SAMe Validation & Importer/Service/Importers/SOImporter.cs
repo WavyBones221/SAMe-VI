@@ -56,7 +56,7 @@ namespace SAMe_VI.Service.Importers
                         throw new InvalidOperationException("Delivery Location cannot be NULL");
                     }
 
-                    if (HandleDeliveryAddress(deliveryLocation, out long DeliveryContactID, con, customerCode))
+                    if (HandleDeliveryAddress(deliveryLocation, out string DeliveryContactID, con, customerCode))
                     {
                         if (HandleSalesOrderHeader(so, out long SalesOrderID, con, DeliveryContactID, PDFAttachment))
                         {
@@ -110,8 +110,8 @@ namespace SAMe_VI.Service.Importers
                             }
 
                             // ATTENTION - This stored procedure is responsible for posting the order to be picekd up by the live system, if testing PLEASE comment out. 
-                            //return RunStoredProcedure<bool>($"{Configuration.DatabaseName}.dbo.SAMe_Importer_Sign_off_Sales_Order", con, "IsSuccess", SQL.CreateParam("SalesOrderID", SalesOrderID, SqlDbType.BigInt));
-                            return true;
+                            return RunStoredProcedure<bool>($"{Configuration.DatabaseName}.dbo.SAMe_Importer_Sign_off_Sales_Order", con, "IsSuccess", SQL.CreateParam("SalesOrderID", SalesOrderID, SqlDbType.BigInt));
+                            //return true;
                         }
                         else
                         {
@@ -148,7 +148,7 @@ namespace SAMe_VI.Service.Importers
             }
         }
 
-        private static bool HandleDeliveryAddress(DeliveryLocationLine dl, out long DeliveryContactID, SqlConnection con, string customerCode)
+        private static bool HandleDeliveryAddress(DeliveryLocationLine dl, out string DeliveryContactID, SqlConnection con, string customerCode)
         {
             SqlParameter[] p = [
                 SQL.CreateParam("address1", dl.AddressLine1.Value),
@@ -159,7 +159,7 @@ namespace SAMe_VI.Service.Importers
                 SQL.CreateParam("customerCode", customerCode)
                 ];
 
-            DeliveryContactID = RunStoredProcedure<long>($"{Configuration.DatabaseName}.dbo.SAMe_Import_DeliveryAddress", con, parameters: p);
+            DeliveryContactID = RunStoredProcedure<string>($"{Configuration.DatabaseName}.dbo.SAMe_Import_DeliveryAddress", con, parameters: p);
             return DeliveryContactID != default;
         }
 
@@ -227,13 +227,13 @@ namespace SAMe_VI.Service.Importers
             return SalesOrderLineID != default;
         }
 
-        private static bool HandleSalesOrderHeader(SalesOrder salesOrder, out long SalesOrderID, SqlConnection con, long DeliveryContactID, string? AttachmentPath)
+        private static bool HandleSalesOrderHeader(SalesOrder salesOrder, out long SalesOrderID, SqlConnection con, string DeliveryContactID, string? AttachmentPath)
         {
             SqlParameter[] p = [
                 SQL.CreateParam("SalesOrderNumber", salesOrder.OrderNumber.Value),
                 SQL.CreateParam("OrderDate", salesOrder.OrderDate.ToString("yyyy-MM-dd HH:mm:ss.fff"), SqlDbType.DateTime),
                 SQL.CreateParam("CustomerCode", salesOrder.CustomerCode.Value),
-                SQL.CreateParam("DeliveryContactID", DeliveryContactID,SqlDbType.BigInt)
+                SQL.CreateParam("DeliveryContactID", DeliveryContactID, SqlDbType.NVarChar)
                 ];
 
             if (AttachmentPath is not null)

@@ -1,4 +1,7 @@
-﻿using SAMe_VI.Object.Models;
+﻿using Microsoft.Data.SqlClient;
+using SAMe_VI.Object;
+using SAMe_VI.Object.Models;
+using System.Data;
 using System.Text.RegularExpressions;
 
 namespace SAMe_VI.Service.Mapping
@@ -70,7 +73,7 @@ namespace SAMe_VI.Service.Mapping
                         CustomerCode: new FieldValue<string>(
                             raw.Operation.Value ?? string.Empty,
                             Type: string.Empty,
-                            userValidated: true,
+                            userValidated: false,
                             userValidatable: true
                         ),
                         userValidated: BoolField(
@@ -172,9 +175,10 @@ namespace SAMe_VI.Service.Mapping
                 CustomerCode: new FieldValue<string>(
                     raw.Operation.Value ?? string.Empty,
                     Type: string.Empty,
-                    userValidated: true,
+                    userValidated: false,
                     userValidatable: true
-                )
+                ),
+                DivisionCode: GetDivisionCode(raw.Operation.Value) ?? string.Empty
             );
 
             return mapped;
@@ -216,6 +220,41 @@ namespace SAMe_VI.Service.Mapping
             string result = EVRegex().Replace(source, " ");
             return result;
         }
+
+
+        private static string? GetDivisionCode(string? customerCode)
+        {
+            if (string.IsNullOrWhiteSpace(customerCode))
+            {
+                return null;
+            }
+
+            using (SqlConnection connection = new(Configuration.ConnectionString))
+            {
+                using (SqlCommand command = new($"{Configuration.DatabaseName}.dbo.SAMe_GetCustomerDetails", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+
+                    SqlParameter parameter = new("@CustomerCode", SqlDbType.NVarChar, 50)
+                    {
+                        Value = customerCode
+                    };
+                    command.Parameters.Add(parameter);
+
+                    connection.Open();
+
+                    object? result = command.ExecuteScalar();
+
+                    if (result == null || result == DBNull.Value)
+                    {
+                        return null;
+                    }
+
+                    return Convert.ToString(result);
+                }
+            }
+        }
+
 
         [GeneratedRegex(@"\r?\n")]
         private static partial Regex EVRegex();

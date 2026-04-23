@@ -12,6 +12,7 @@ namespace SAMe_VI.Service.Validators
     {
         private readonly ISORepository _repo = repo;
 
+
         protected override async Task<ValidationResult> PostValidateAsync(ValidationResult r, SalesOrder doc, CancellationToken ct)
         {
             DataTable dtH = _repo.ValidateOrderHeaders(doc);
@@ -24,7 +25,6 @@ namespace SAMe_VI.Service.Validators
                 {
                     if (SOHValidatedFields.Any(x => string.Equals(x, headerMessage.Type, StringComparison.OrdinalIgnoreCase)))
                     {
-                        //In User We Trust
                         r.AddWarningForPath(headerMessage.Type, headerMessage.Messages ?? "Big problem");
                     }
                     else
@@ -44,7 +44,6 @@ namespace SAMe_VI.Service.Validators
                 {
                     if (SOLValidatedFields.Any(x => string.Equals(x, lineMessage.Type, StringComparison.OrdinalIgnoreCase)))
                     {
-                        //In User We Trust
                         r.AddWarningForPath($"{lineMessage.Type}_{lineMessage.LineNumber}", lineMessage.Messages ?? "Big problem");
                     }
                     else
@@ -54,10 +53,6 @@ namespace SAMe_VI.Service.Validators
                 }
             }
 
-
-            //note this can handle more than one delivery location, since the analyser can in theory extract more than one delivery location
-            //This needs to be accounted for later on in the code, either just takeing the first location as the main
-            //or comparing both against what is in intact and choosing the one that matches what we have on file
             DataTable dtD = _repo.ValidateDeliveryLocations(doc.DeliveryLocation);
             List<string> SODValidatedFields = GetValidatedFieldTypesDeep(doc.DeliveryLocation);
             List<SOLineValidationStruct> SOD = MapToList<SOLineValidationStruct>(dtD);
@@ -75,14 +70,13 @@ namespace SAMe_VI.Service.Validators
                         r.AddForPath($"{deliveryLineMessage.Type}_{deliveryLineMessage.LineNumber}", deliveryLineMessage.Messages ?? "Big problem");
                     }
                 }
+
                 if (doc.DeliveryLocation.Count > 1)
                 {
-                    //unhandled for now, as this will likely not happen but it is possible
                     r.AddForPath($"{deliveryLineMessage.Type}_{deliveryLineMessage.LineNumber}", "The analyser has extracted more than one delivery location");
                 }
             }
 
-            //if any of the orderlines (doc.items) has a non null or string.empty value for requiredEmbroidery addForPath
             if (doc.Items != null && doc.Items.Any(l => !string.IsNullOrWhiteSpace(l.RequiredEmbroidery)))
             {
                 foreach (SalesOrderLine line in doc.Items.Where(l => !string.IsNullOrWhiteSpace(l.RequiredEmbroidery)))
@@ -94,8 +88,24 @@ namespace SAMe_VI.Service.Validators
                     }
                 }
             }
+
+            //set this to false if you wish for the orders to flow in without manually checking them.
+            if (true)
+            {
+                bool hasAnyUserValidated =
+                    SOHValidatedFields.Count > 0 ||
+                    SOLValidatedFields.Count > 0 ||
+                    SODValidatedFields.Count > 0;
+
+                if (!hasAnyUserValidated)
+                {
+                    r.Add("No user-validated fields were provided, Will require Manual Review regardless if Errors are found. Please comment out this section if you dont want to send everything for Manual Review");
+                }
+            }
+
             return r;
         }
+
 
         private static List<T> MapToList<T>(DataTable table) where T : new()
         {

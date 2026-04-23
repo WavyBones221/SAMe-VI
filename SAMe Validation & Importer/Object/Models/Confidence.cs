@@ -157,7 +157,7 @@ namespace SAMe_VI.Object.Models
                                     }
                                     else if (b.ValueKind == JsonValueKind.String)
                                     {
-                                        string stringValue = b.GetString();
+                                        string stringValue = b.GetString()!;
                                         if (bool.TryParse(stringValue, out bool boolValue))
                                         {
                                             value = (T)(object)boolValue;

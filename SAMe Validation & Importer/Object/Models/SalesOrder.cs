@@ -86,7 +86,8 @@
             decimal TotalValue,
             string Customer,
             string FileBlobID,
-            FieldValue<string> CustomerCode
+            FieldValue<string> CustomerCode,
+            string DivisionCode
     );
 
     public sealed record SalesOrderLine(
